@@ -1,126 +1,363 @@
-# loading_screen.py — Parameter configuration UI
-
-import pygame
 import sys
+import pygame
+
 from config import *
 
 pygame.init()
 
 
-# helpers
+# =========================================================
+# Helpers
+# =========================================================
 
-def draw_label(surf, text, x, y, color=GRAY, size=22):
-    f = pygame.font.SysFont("Arial", size)
-    s = f.render(text, True, color)
-    surf.blit(s, (x, y))
+def draw_text(surface, text, x, y,
+              color=WHITE,
+              size=22,
+              bold=False):
 
-def draw_title(surf, text, y):
-    f = pygame.font.SysFont("Arial", 36, bold=True)
-    s = f.render(text, True, WHITE)
-    surf.blit(s, (WIDTH // 2 - s.get_width() // 2, y))
-
-def draw_button(surf, rect, text, hover=False):
-    color = (80, 200, 120) if hover else (50, 140, 80)
-    pygame.draw.rect(surf, color, rect, border_radius=8)
-    f = pygame.font.SysFont("Arial", 24, bold=True)
-    s = f.render(text, True, WHITE)
-    surf.blit(s, (rect.centerx - s.get_width() // 2,
-                  rect.centery - s.get_height() // 2))
+    font = pygame.font.SysFont("Arial", size, bold=bold)
+    surf = font.render(text, True, color)
+    surface.blit(surf, (x, y))
 
 
-# Slider widget 
+def draw_center_text(surface, text, y,
+                     color=WHITE,
+                     size=36,
+                     bold=True):
+
+    font = pygame.font.SysFont("Arial", size, bold=bold)
+    surf = font.render(text, True, color)
+
+    surface.blit(
+        surf,
+        (WIDTH // 2 - surf.get_width() // 2, y)
+    )
+
+
+# =========================================================
+# Slider Widget
+# =========================================================
 
 class Slider:
-    def __init__(self, x, y, w, min_v, max_v, default, label, dtype=float, step=None):
-        self.x, self.y, self.w = x, y, w
-        self.min_v, self.max_v = min_v, max_v
-        self.value   = default
-        self.label   = label
-        self.dtype   = dtype
-        self.step    = step
-        self.dragging = False
-        self.track = pygame.Rect(x, y + 20, w, 6)
 
-    def _knob_x(self):
-        ratio = (self.value - self.min_v) / (self.max_v - self.min_v)
-        return int(self.x + ratio * self.w)
+    def __init__(
+        self,
+        x,
+        y,
+        width,
+        min_value,
+        max_value,
+        default_value,
+        label,
+        dtype=float,
+        step=None
+    ):
+
+        self.x = x
+        self.y = y
+        self.width = width
+
+        self.min_value = min_value
+        self.max_value = max_value
+        self.value = default_value
+
+        self.label = label
+        self.dtype = dtype
+        self.step = step
+
+        self.dragging = False
+
+        self.track_rect = pygame.Rect(
+            x,
+            y + 20,
+            width,
+            6
+        )
+
+    def get_knob_x(self):
+
+        ratio = (
+            (self.value - self.min_value)
+            /
+            (self.max_value - self.min_value)
+        )
+
+        return int(self.x + ratio * self.width)
 
     def handle_event(self, event):
-        kx = self._knob_x()
-        knob = pygame.Rect(kx - 10, self.y + 10, 20, 20)
-        if event.type == pygame.MOUSEBUTTONDOWN and knob.collidepoint(event.pos):
-            self.dragging = True
-        if event.type == pygame.MOUSEBUTTONUP:
+
+        knob_x = self.get_knob_x()
+
+        knob_rect = pygame.Rect(
+            knob_x - 10,
+            self.y + 10,
+            20,
+            20
+        )
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if knob_rect.collidepoint(event.pos):
+                self.dragging = True
+
+        elif event.type == pygame.MOUSEBUTTONUP:
             self.dragging = False
-        if event.type == pygame.MOUSEMOTION and self.dragging:
-            ratio = max(0.0, min(1.0, (event.pos[0] - self.x) / self.w))
-            raw   = self.min_v + ratio * (self.max_v - self.min_v)
-            if self.step:
-                raw = round(raw / self.step) * self.step
-            self.value = self.dtype(round(raw, 4))
 
-    def draw(self, surf):
-        pygame.draw.rect(surf, (80, 80, 80), self.track, border_radius=3)
-        kx = self._knob_x()
-        pygame.draw.circle(surf, WHITE, (kx, self.y + 23), 10)
-        draw_label(surf, self.label, self.x, self.y - 4)
-        val_str = str(int(self.value)) if self.dtype == int else f"{self.value:.4f}"
-        draw_label(surf, val_str, self.x + self.w + 12, self.y + 10,
-                   color=GREEN, size=20)
+        elif event.type == pygame.MOUSEMOTION:
+
+            if self.dragging:
+
+                ratio = (
+                    (event.pos[0] - self.x)
+                    / self.width
+                )
+
+                ratio = max(0.0, min(1.0, ratio))
+
+                raw_value = (
+                    self.min_value
+                    +
+                    ratio * (self.max_value - self.min_value)
+                )
+
+                if self.step is not None:
+                    raw_value = (
+                        round(raw_value / self.step)
+                        * self.step
+                    )
+
+                if self.dtype == int:
+                    self.value = int(raw_value)
+                else:
+                    self.value = float(round(raw_value, 5))
+
+    def draw(self, surface):
+
+        pygame.draw.rect(
+            surface,
+            (80, 80, 80),
+            self.track_rect,
+            border_radius=3
+        )
+
+        knob_x = self.get_knob_x()
+
+        pygame.draw.circle(
+            surface,
+            WHITE,
+            (knob_x, self.y + 23),
+            10
+        )
+
+        draw_text(
+            surface,
+            self.label,
+            self.x,
+            self.y - 6,
+            color=GRAY,
+            size=20
+        )
+
+        if self.dtype == int:
+            value_str = str(self.value)
+        else:
+            value_str = f"{self.value:.4f}"
+
+        draw_text(
+            surface,
+            value_str,
+            self.x + self.width + 14,
+            self.y + 10,
+            color=GREEN,
+            size=20
+        )
 
 
-# Main loading screen
+# =========================================================
+# Main Loading Screen
+# =========================================================
 
 def run_loading_screen():
-    win = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("RL Pong — Settings")
+
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("RL Pong - Setup")
+
     clock = pygame.time.Clock()
 
-    # Sliders (shared params first, then per-agent) 
     sliders = {
-        "num_games": Slider(80,  100, 500,   10, 500, 100,  "Number of Games",      int,  step=10),
-        "fps":       Slider(80,  165, 500,   10, 240,  60,  "Simulation FPS",       int,  step=10),
 
-        # Agent 1
-        "lr1":       Slider(80,  250, 220, 1e-4, 1e-2, 1e-3, "P1  Learning Rate",  float),
-        "gamma1":    Slider(380, 250, 220, 0.90, 0.999, 0.99, "P1  Gamma",         float),
-        "hid1":      Slider(80,  320, 220,   64,  512,  256, "P1  Hidden Dim",     int,  step=64),
+        "num_games":
+            Slider(
+                80, 100, 500,
+                10, 500,
+                100,
+                "Number of Games",
+                int,
+                step=10
+            ),
 
-        # Agent 2
-        "lr2":       Slider(80,  410, 220, 1e-4, 1e-2, 1e-3, "P2  Learning Rate",  float),
-        "gamma2":    Slider(380, 410, 220, 0.90, 0.999, 0.99, "P2  Gamma",         float),
-        "hid2":      Slider(80,  480, 220,   64,  512,  256, "P2  Hidden Dim",     int,  step=64),
+        "fps":
+            Slider(
+                80, 170, 500,
+                10, 240,
+                60,
+                "Simulation FPS",
+                int,
+                step=10
+            ),
+
+        # Player 1
+
+        "lr1":
+            Slider(
+                80, 260, 220,
+                1e-4, 1e-2,
+                1e-3,
+                "P1 Learning Rate"
+            ),
+
+        "gamma1":
+            Slider(
+                380, 260, 220,
+                0.90, 0.999,
+                0.99,
+                "P1 Gamma"
+            ),
+
+        "hid1":
+            Slider(
+                80, 330, 220,
+                64, 512,
+                256,
+                "P1 Hidden Dim",
+                int,
+                step=64
+            ),
+
+        # Player 2
+
+        "lr2":
+            Slider(
+                80, 430, 220,
+                1e-4, 1e-2,
+                1e-3,
+                "P2 Learning Rate"
+            ),
+
+        "gamma2":
+            Slider(
+                380, 430, 220,
+                0.90, 0.999,
+                0.99,
+                "P2 Gamma"
+            ),
+
+        "hid2":
+            Slider(
+                80, 500, 220,
+                64, 512,
+                256,
+                "P2 Hidden Dim",
+                int,
+                step=64
+            ),
     }
 
-    btn_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT - 60, 200, 44)
+    start_button = pygame.Rect(
+        WIDTH // 2 - 110,
+        HEIGHT - 70,
+        220,
+        50
+    )
 
     while True:
-        clock.tick(60)
-        mouse = pygame.mouse.get_pos()
-        win.fill(DARK)
 
-        draw_title(win, "RL Pong Simulation — Setup", 20)
-        draw_label(win, "── Global ──────────────────────────────────────────────────────", 60, 78, color=(100,100,100), size=16)
-        draw_label(win, "── Player 1 (Red) ───────────────────────────────────────────", 60, 228, color=RED, size=16)
-        draw_label(win, "── Player 2 (Blue) ──────────────────────────────────────────", 60, 390, color=BLUE, size=16)
+        clock.tick(60)
 
         for event in pygame.event.get():
+
             if event.type == pygame.QUIT:
-                pygame.quit(); sys.exit()
-            for sl in sliders.values():
-                sl.handle_event(event)
-            if event.type == pygame.MOUSEBUTTONDOWN and btn_rect.collidepoint(event.pos):
-                pygame.display.quit()
-                return {k: sl.value for k, sl in sliders.items()}
+                pygame.quit()
+                sys.exit()
 
-        for sl in sliders.values():
-            sl.draw(win)
+            for slider in sliders.values():
+                slider.handle_event(event)
 
-        hover = btn_rect.collidepoint(mouse)
-        draw_button(win, btn_rect, "Start Simulation", hover)
+            if (
+                event.type == pygame.MOUSEBUTTONDOWN
+                and start_button.collidepoint(event.pos)
+            ):
+
+                params = {
+                    key: slider.value
+                    for key, slider in sliders.items()
+                }
+
+                return params
+
+        screen.fill(DARK)
+
+        draw_center_text(
+            screen,
+            "RL Pong Simulation",
+            20
+        )
+
+        draw_text(
+            screen,
+            "Global Settings",
+            60,
+            70,
+            color=GREEN,
+            size=18,
+            bold=True
+        )
+
+        draw_text(
+            screen,
+            "Player 1 (Red)",
+            60,
+            230,
+            color=RED,
+            size=18,
+            bold=True
+        )
+
+        draw_text(
+            screen,
+            "Player 2 (Blue)",
+            60,
+            400,
+            color=BLUE,
+            size=18,
+            bold=True
+        )
+
+        for slider in sliders.values():
+            slider.draw(screen)
+
+        mouse_pos = pygame.mouse.get_pos()
+
+        hovered = start_button.collidepoint(mouse_pos)
+
+        button_color = (
+            (80, 200, 120)
+            if hovered
+            else
+            (50, 140, 80)
+        )
+
+        pygame.draw.rect(
+            screen,
+            button_color,
+            start_button,
+            border_radius=8
+        )
+
+        draw_center_text(
+            screen,
+            "Start Simulation",
+            HEIGHT - 62,
+            size=24
+        )
+
         pygame.display.flip()
-
-
-if __name__ == "__main__":
-    params = run_loading_screen()
-    print("Params chosen:", params)

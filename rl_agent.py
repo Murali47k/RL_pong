@@ -5,8 +5,8 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 
-FRAME_H, FRAME_W = 60, 80   # downsample resolution
-INPUT_DIM = FRAME_H * FRAME_W
+# FRAME_H, FRAME_W = 60, 80   # downsample resolution
+INPUT_DIM = 6
 
 
 class PolicyNetwork(nn.Module):
