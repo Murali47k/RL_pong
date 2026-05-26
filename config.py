@@ -1,0 +1,28 @@
+WHITE  = (255, 255, 255)
+BLACK  = (0, 0, 0)
+RED    = (220, 50, 50)
+BLUE   = (50, 100, 220)
+GRAY   = (180, 180, 180)
+
+PANEL  = (22, 22, 32)
+GREEN  = (50, 200, 100)
+YELLOW = (240, 200, 60)
+
+SIDEBAR_W = 260
+
+GAME_W = 800
+GAME_H = 600
+
+WIN_W = SIDEBAR_W + GAME_W
+WIN_H = GAME_H
+
+PADDLE_W = 10
+PADDLE_H = 100
+
+PADDLE_SPD = 6
+
+BALL_SZ = 10
+
+SETUP = "setup"
+RUNNING = "running"
+SUMMARY = "summary"
