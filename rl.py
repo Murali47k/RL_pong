@@ -2,8 +2,8 @@
 rl.py — Lightweight DQN agents for Pong.
 
 Each paddle gets its own DQNAgent that:
-  • receives a stack of 4 grayscale 84×84 frames as state
-  • outputs Q-values for 3 actions: 0=stay, 1=up, 2=down
+  • receives a stack of 6 grayscale 84×84 frames as state
+  • outputs Q-values for 2 actions: 0=up, 1=down  (stay removed)
   • trains from a replay buffer using the Bellman equation
 
 No GPU required — the network is small enough for CPU.
@@ -30,21 +30,21 @@ except ImportError:
 
 FRAME_H    = 84          # resized frame height fed to CNN
 FRAME_W    = 84          # resized frame width
-STACK_N    = 4           # frames stacked together
-N_ACTIONS  = 3           # 0=stay, 1=up, 2=down
+STACK_N    = 6           # frames stacked — more context for velocity estimation
+N_ACTIONS  = 2           # 0=up, 1=down  (stay removed to prevent idle policies)
 
-BATCH_SIZE     = 32
-REPLAY_MAXLEN  = 10_000
-GAMMA          = 0.99    # discount factor
+BATCH_SIZE     = 64
+REPLAY_MAXLEN  = 50_000  # larger buffer → more diverse experience
+GAMMA          = 0.995   # higher discount → agent values future rallies more
 LR             = 1e-4    # Adam learning rate
 
 EPS_START  = 1.0
 EPS_END    = 0.05
-EPS_DECAY  = 5_000       # steps over which epsilon decays
+EPS_DECAY  = 100_000     # slow decay so agents explore long enough
 
-TARGET_UPDATE_FREQ = 500  # steps between target-net syncs
-TRAIN_FREQ         = 4    # train every N steps
-MIN_REPLAY         = 500  # minimum transitions before training starts
+TARGET_UPDATE_FREQ = 1000  # steps between target-net syncs
+TRAIN_FREQ         = 4     # train every N steps
+MIN_REPLAY         = 2000  # minimum transitions before training starts
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ MIN_REPLAY         = 500  # minimum transitions before training starts
 
 class QNet(nn.Module):
     """
-    Small CNN: 4 stacked 84×84 grayscale frames → 3 Q-values.
+    Small CNN: 6 stacked 84×84 grayscale frames → 2 Q-values (up/down).
     Inspired by the original DQN paper but scaled down for CPU.
     """
 
@@ -209,7 +209,7 @@ class DQNAgent:
     def act(self, frame):
         """
         Given the current frame, push it into the stack and return an action.
-        0=stay, 1=up, 2=down
+        0=up, 1=down
         """
         self.frame_stack.push(frame)
         state = self.frame_stack.state()

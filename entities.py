@@ -65,8 +65,13 @@ class Ball:
             BALL_SZ
         )
 
-        self.speed_x = self.spd * random.choice([-1, 1])
-        self.speed_y = self.spd * random.choice([-1, 1])
+        # Randomise vertical angle so agents can't overfit to a fixed trajectory
+        angle = random.uniform(0.3, 0.8)          # non-trivial vertical component
+        vx    = self.spd * random.choice([-1, 1])
+        vy    = self.spd * angle * random.choice([-1, 1])
+
+        self.speed_x = vx
+        self.speed_y = vy
 
     def move(self):
 

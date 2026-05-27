@@ -12,14 +12,16 @@ Frame pipeline
 --------------
 Every step the game area is captured as an 84×84 grayscale frame.
 Each DQNAgent keeps a rolling stack of 4 frames and passes it through
-a small CNN to choose an action (0=stay, 1=up, 2=down).
+a small CNN to choose an action (0=up, 1=down).
 After every step a reward signal is sent back so the agents can learn.
 
 Reward shaping
 --------------
-  +1   : ball hits YOUR paddle  (good defence)
-  -1   : opponent scores        (you let the ball past)
-   0   : everything else
+  +tracking  : small dense reward every step for staying close to ball
+  +1+bonus   : ball hits YOUR paddle, bonus scales with rally length
+  +2.0       : opponent misses (you score)
+  -2.0       : you miss (opponent scores)
+  -0.02/step : hugging top or bottom wall (anti-corner-camping)
 """
 
 import sys
@@ -441,33 +443,61 @@ class App:
         pl = self.paddle_l
         pr = self.paddle_r
 
+        # ── Reward helpers ────────────────────────────────────────────────
+
+        def tracking_reward(paddle, ball):
+            """Small dense reward for keeping the paddle close to the ball."""
+            dist = abs(paddle.rect.centery - ball.rect.centery)
+            return 0.05 * (1.0 - dist / (GAME_H / 2))
+
+        def wall_penalty(paddle):
+            """Penalise hugging top/bottom edge — discourages corner camping."""
+            margin = 20
+            if paddle.rect.top <= margin or paddle.rect.bottom >= GAME_H - margin:
+                return -0.02
+            return 0.0
+
         reward_l = 0.0
         reward_r = 0.0
         done     = False
+
+        # Dense tracking rewards every step
+        reward_l += tracking_reward(pl, b)
+        reward_r += tracking_reward(pr, b)
+
+        # Wall-hugging penalty every step
+        reward_l += wall_penalty(pl)
+        reward_r += wall_penalty(pr)
+
+        # Rally bonus: each hit is worth more the longer the rally
+        rally_bonus = min(0.05 * self._rally_count, 3.0)
 
         if b.rect.colliderect(pl.rect):
             b.rect.left  = pl.rect.right
             b.speed_x    = abs(b.speed_x)
             self._rally_count += 1
-            reward_l += 1.0   # P1 hit the ball — good
+            reward_l += 1.0 + rally_bonus   # P1 hit — scales with rally length
 
         if b.rect.colliderect(pr.rect):
             b.rect.right = pr.rect.left
             b.speed_x    = -abs(b.speed_x)
             self._rally_count += 1
-            reward_r += 1.0   # P2 hit the ball — good
+            reward_r += 1.0 + rally_bonus   # P2 hit — scales with rally length
 
-        # Scoring
+        # Scoring: strong penalty for missing, strong reward for opponent missing
+        MISS_PENALTY  = -2.0
+        SCORE_REWARD  =  2.0
+
         if b.rect.left <= 0:          # P1 missed → P2 scores
             self.total_wins[1] += 1
-            reward_l -= 1.0
-            reward_r += 1.0
+            reward_l += MISS_PENALTY
+            reward_r += SCORE_REWARD
             done = True
 
         elif b.rect.right >= GAME_W:  # P2 missed → P1 scores
             self.total_wins[0] += 1
-            reward_l += 1.0
-            reward_r -= 1.0
+            reward_l += SCORE_REWARD
+            reward_r += MISS_PENALTY
             done = True
 
         # 6. Capture next frame and store transitions
@@ -505,10 +535,10 @@ class App:
 
     @staticmethod
     def _apply_action(paddle, action):
-        """0=stay, 1=up, 2=down"""
-        if action == 1 and paddle.rect.top > 0:
+        """0=up, 1=down  (stay removed — agents must always move)"""
+        if action == 0 and paddle.rect.top > 0:
             paddle.rect.y -= paddle.spd
-        elif action == 2 and paddle.rect.bottom < GAME_H:
+        elif action == 1 and paddle.rect.bottom < GAME_H:
             paddle.rect.y += paddle.spd
 
     # ══════════════════════════════════════════════════════════════════════
