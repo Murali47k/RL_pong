@@ -373,23 +373,6 @@ Disadvantages:
 * Cannot generalize beyond designed states
 * Less scalable
 
----
-
-# Typical Learning Progression
-
-Both agents generally evolve through similar stages:
-
-```mermaid
-flowchart LR
-
-A[Random Movement]
-B[Ball Tracking]
-C[Consistent Paddle Control]
-D[Short Rallies]
-E[Stable Long Rallies]
-
-A --> B --> C --> D --> E
-```
 
 ---
 
@@ -403,20 +386,6 @@ A --> B --> C --> D --> E
 
 ---
 
-# Future Improvements
-
-Potential extensions include:
-
-* Double DQN
-* Prioritized replay
-* Self-play curriculum
-* PPO or Actor-Critic agents
-* Multi-agent tournaments
-* GPU acceleration
-* Better reward shaping
-* Human vs AI mode
-
----
 
 # License
 
