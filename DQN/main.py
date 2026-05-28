@@ -33,12 +33,14 @@ os.environ["TORCHDYNAMO_DISABLE"] = "1"
 os.environ["TORCH_COMPILE_DISABLE"] = "1"
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
 from config  import *
 from entities import Paddle, Ball
 from ui      import Slider
 
 # ── RL ────────────────────────────────────────────────────────────────────
-from rl import DQNAgent, preprocess, TORCH_OK
+from DQN.rl import DQNAgent, preprocess, TORCH_OK
 
 # Extra mode constants (SETUP / RUNNING / SUMMARY already live in config)
 TRAINING = "training"
@@ -523,9 +525,9 @@ class App:
                 self.state = SUMMARY
                 # auto-save trained weights
                 if TORCH_OK and self._rl_training:
-                    self.agent_l.save("agent_p1.pt")
-                    self.agent_r.save("agent_p2.pt")
-                    print("Weights saved → agent_p1.pt / agent_p2.pt")
+                    self.agent_l.save("DQN/agent_p1.pt")
+                    self.agent_r.save("DQN/agent_p2.pt")
+                    print("Weights saved → DQN/agent_p1.pt / DQN/agent_p2.pt")
             else:
                 self._new_game()
 
@@ -572,8 +574,8 @@ class App:
                             # Try to load previously saved weights for eval warmup
                             if TORCH_OK:
                                 try:
-                                    self.agent_l.load("agent_p1.pt")
-                                    self.agent_r.load("agent_p2.pt")
+                                    self.agent_l.load("DQN/agent_p1.pt")
+                                    self.agent_r.load("DQN/agent_p2.pt")
                                     print("Loaded existing weights — continuing training.")
                                 except Exception:
                                     pass
@@ -582,8 +584,8 @@ class App:
                         elif self.btn_eval.collidepoint(pos):
                             if TORCH_OK:
                                 try:
-                                    self.agent_l.load("agent_p1.pt")
-                                    self.agent_r.load("agent_p2.pt")
+                                    self.agent_l.load("DQN/agent_p1.pt")
+                                    self.agent_r.load("DQN/agent_p2.pt")
                                     print("Loaded weights for evaluation.")
                                 except Exception:
                                     print("No saved weights found — agents will act randomly.")
