@@ -1,26 +1,6 @@
 """
 rl.py  —  Tabular Q-Learning agents for Pong.
 
-No neural networks, no PyTorch.
-
-State space
------------
-Each agent observes two things sampled 4 times per second:
-  • ball_rel  : (ball_center_y - paddle_center_y) bucketed into N_REL bins
-                ranging from "far above" to "far below"
-  • ball_dir  : whether the ball is currently moving TOWARD or AWAY from
-                this paddle (2 values)
-
-That gives  N_REL × 2  discrete states per agent.
-
-Actions
--------
-  0 = move UP
-  1 = move DOWN
-  2 = STAY
-
-Algorithm
----------
 Standard tabular Q-learning with ε-greedy exploration.
 
     Q(s,a) ← Q(s,a) + α [ r + γ · max_a' Q(s',a') − Q(s,a) ]
@@ -38,23 +18,20 @@ import os
 
 from config import GAME_H, GAME_W
 
-
-# ──────────────────────────────────────────────────────────────────────────
 # Hyper-parameters
-# ──────────────────────────────────────────────────────────────────────────
 
 N_REL       = 16       # number of buckets for ball-Y relative to paddle-Y
                        # covers range [-GAME_H, +GAME_H]
 
 N_ACTIONS   = 3        # 0=up, 1=down, 2=stay
 
-ALPHA_START = 0.5      # initial learning rate
+ALPHA_START = 0.7      # initial learning rate
 ALPHA_MIN   = 0.05     # floor for learning rate
-ALPHA_DECAY = 8_000    # steps until α ≈ ALPHA_MIN  (exponential)
+ALPHA_DECAY = 4_000    # steps until α ≈ ALPHA_MIN  (exponential)
 
-EPS_START   = 1.0      # initial exploration probability
-EPS_MIN     = 0.05     # minimum exploration (always a bit random)
-EPS_DECAY   = 15_000   # steps until ε ≈ EPS_MIN
+EPS_START   = 0.8      # initial exploration probability
+EPS_MIN     = 0.03     # minimum exploration (always a bit random)
+EPS_DECAY   = 6_000   # steps until ε ≈ EPS_MIN
 
 GAMMA       = 0.92     # discount factor
 
@@ -63,9 +40,7 @@ GAMMA       = 0.92     # discount factor
 ACT_EVERY   = 10
 
 
-# ──────────────────────────────────────────────────────────────────────────
 # State encoding
-# ──────────────────────────────────────────────────────────────────────────
 
 def _discretize_rel(ball_cy, paddle_cy):
     """
@@ -95,9 +70,7 @@ def encode_state(ball_cy, paddle_cy, ball_vx, is_left_paddle):
 N_STATES = N_REL * 2                 # total number of discrete states
 
 
-# ──────────────────────────────────────────────────────────────────────────
 # Q-Learning Agent
-# ──────────────────────────────────────────────────────────────────────────
 
 class QLAgent:
     """
@@ -132,7 +105,7 @@ class QLAgent:
 
         self.training = True       # set False for eval / greedy play
 
-    # ── schedules ──────────────────────────────────────────────────────────
+    # schedules
 
     @property
     def epsilon(self):
@@ -146,7 +119,7 @@ class QLAgent:
     def avg_td_error(self):
         return float(np.mean(self._td_errors)) if self._td_errors else 0.0
 
-    # ── public API ─────────────────────────────────────────────────────────
+    # public API 
 
     def new_episode(self, ball_cy, paddle_cy, ball_vx):
         """Call at the start of every game round."""
@@ -205,7 +178,7 @@ class QLAgent:
         self.Q[self._prev_state, self._prev_action] += self.alpha * td_error
         self._td_errors.append(abs(td_error))
 
-    # ── persistence ────────────────────────────────────────────────────────
+    # persistence 
 
     def save(self, path):
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)

@@ -1,35 +1,5 @@
 """
 main.py  —  Pong with Tabular Q-Learning agents.
-
-Modes
------
-SETUP    : configure settings, choose Training or Eval
-TRAINING : agents explore + learn (ε-greedy Q-learning)
-EVAL     : trained policy runs greedily (no exploration)
-SUMMARY  : statistics after all rounds complete
-
-RL overview
------------
-Each agent (P1-left, P2-right) observes the game world 4 times per
-second regardless of the rendered FPS.  Its state is:
-
-    ( ball_Y_relative_to_paddle_Y [16 bins],
-      ball_moving_toward_me       [2 values] )
-
-→ 32 discrete states total per agent.
-
-Actions: 0=UP  1=DOWN  2=STAY
-
-Updates use the standard one-step Q-learning rule:
-    Q(s,a) ← Q(s,a) + α [ r + γ max_a' Q(s',a') − Q(s,a) ]
-
-Reward shaping
---------------
-  +tracking  : small dense reward every decision step for being close to ball
-  +1.0+bonus : your paddle hits the ball  (bonus grows with rally length)
-  +2.0       : opponent misses
-  -2.0       : you miss
-  -0.02      : hugging top or bottom wall (anti-camping)
 """
 
 import sys
@@ -49,7 +19,6 @@ TRAINING = "training"
 EVAL     = "eval"
 
 
-# ──────────────────────────────────────────────────────────────────────────
 class App:
 
     def __init__(self):
@@ -90,7 +59,7 @@ class App:
         self.btn_eval  = pygame.Rect(14 + bw + 6, WIN_H - 58, bw, 42)
         self.btn_again = pygame.Rect(14,          WIN_H - 58, SIDEBAR_W - 28, 42)
 
-        # ── app state ─────────────────────────────────────────────────────
+        # app state 
         self.state     = SETUP
         self.mode      = TRAINING
 
@@ -109,7 +78,6 @@ class App:
         self._rally_count = 0
         self._game_start  = 0.0
 
-        # ── Q-Learning agents (no PyTorch, no GPU needed) ─────────────────
         self.agent_l = QLAgent("P1-red",  is_left=True)
         self.agent_r = QLAgent("P2-blue", is_left=False)
 
@@ -120,9 +88,7 @@ class App:
         # Sim-step counter for deciding when agents learn
         self._sim_step_counter = 0
 
-    # ══════════════════════════════════════════════════════════════════════
     # Sidebar
-    # ══════════════════════════════════════════════════════════════════════
 
     def _draw_sidebar(self):
 
@@ -138,7 +104,7 @@ class App:
         for sl in self.sliders.values():
             sl.draw(sb, self.f_sm, self.f_val)
 
-        # ── live stats ────────────────────────────────────────────────────
+        # live stats 
         if self.state in (TRAINING, EVAL, SUMMARY):
 
             y0 = self.btn_again.top - 168
@@ -194,7 +160,7 @@ class App:
                     (14, y0 + i * 18)
                 )
 
-        # ── buttons ───────────────────────────────────────────────────────
+        # buttons 
         mx, my = pygame.mouse.get_pos()
 
         if self.state == SETUP:
@@ -240,9 +206,7 @@ class App:
 
         self.screen.blit(sb, (0, 0))
 
-    # ══════════════════════════════════════════════════════════════════════
     # Game area
-    # ══════════════════════════════════════════════════════════════════════
 
     def _draw_game(self):
 
@@ -304,9 +268,8 @@ class App:
             ox + GAME_W // 2 - rc.get_width() // 2, GAME_H - 22
         ))
 
-    # ══════════════════════════════════════════════════════════════════════
+
     # Summary screen
-    # ══════════════════════════════════════════════════════════════════════
 
     def _draw_summary(self, ox):
 
@@ -344,9 +307,8 @@ class App:
             ))
             y += font.get_height() + 8
 
-    # ══════════════════════════════════════════════════════════════════════
+
     # Simulation control
-    # ══════════════════════════════════════════════════════════════════════
 
     def _start(self, mode):
         p = {k: sl.val for k, sl in self.sliders.items()}
@@ -386,9 +348,7 @@ class App:
         self.agent_l.new_episode(b.rect.centery, self.paddle_l.rect.centery, b.speed_x)
         self.agent_r.new_episode(b.rect.centery, self.paddle_r.rect.centery, b.speed_x)
 
-    # ══════════════════════════════════════════════════════════════════════
     # Simulation step  (called once per frame when state == TRAINING / EVAL)
-    # ══════════════════════════════════════════════════════════════════════
 
     def _sim_step(self):
 
@@ -410,7 +370,7 @@ class App:
         # 3. Move ball
         b.move()
 
-        # ── reward helpers ────────────────────────────────────────────────
+        # reward helpers
 
         def tracking_reward(paddle):
             dist = abs(paddle.rect.centery - b.rect.centery)
@@ -495,9 +455,7 @@ class App:
             else:
                 self._new_game()
 
-    # ══════════════════════════════════════════════════════════════════════
     # Action → paddle movement
-    # ══════════════════════════════════════════════════════════════════════
 
     @staticmethod
     def _apply_action(paddle, action):
@@ -506,11 +464,10 @@ class App:
             paddle.rect.y -= paddle.spd
         elif action == 1 and paddle.rect.bottom < GAME_H:
             paddle.rect.y += paddle.spd
-        # action == 2: do nothing
+        else:
+            pass
 
-    # ══════════════════════════════════════════════════════════════════════
     # Main loop
-    # ══════════════════════════════════════════════════════════════════════
 
     def run(self):
 
