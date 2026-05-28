@@ -1,27 +1,5 @@
 """
 main.py — Pong with DQN Reinforcement Learning agents.
-
-Modes
------
-SETUP    : configure settings, choose Training or Eval
-TRAINING : agents explore + learn (epsilon-greedy DQN)
-EVAL     : trained policy runs greedily (no random actions)
-SUMMARY  : statistics after all rounds complete
-
-Frame pipeline
---------------
-Every step the game area is captured as an 84×84 grayscale frame.
-Each DQNAgent keeps a rolling stack of 4 frames and passes it through
-a small CNN to choose an action (0=up, 1=down).
-After every step a reward signal is sent back so the agents can learn.
-
-Reward shaping
---------------
-  +tracking  : small dense reward every step for staying close to ball
-  +1+bonus   : ball hits YOUR paddle, bonus scales with rally length
-  +2.0       : opponent misses (you score)
-  -2.0       : you miss (opponent scores)
-  -0.02/step : hugging top or bottom wall (anti-corner-camping)
 """
 
 import sys
@@ -39,15 +17,13 @@ from config  import *
 from entities import Paddle, Ball
 from ui      import Slider
 
-# ── RL ────────────────────────────────────────────────────────────────────
+# RL 
 from DQN.rl import DQNAgent, preprocess, TORCH_OK
 
 # Extra mode constants (SETUP / RUNNING / SUMMARY already live in config)
 TRAINING = "training"
 EVAL     = "eval"
 
-
-# ──────────────────────────────────────────────────────────────────────────
 class App:
 
     def __init__(self):
@@ -91,7 +67,7 @@ class App:
         # Single "Run Again" button shown in SUMMARY
         self.btn_again = pygame.Rect(14, WIN_H - 58, SIDEBAR_W - 28, 42)
 
-        # ── state ─────────────────────────────────────────────────────────
+        # state
         self.state     = SETUP
         self.mode      = TRAINING   # last mode chosen (TRAINING or EVAL)
 
@@ -110,7 +86,7 @@ class App:
         self._rally_count = 0
         self._game_start  = 0.0
 
-        # ── RL agents ─────────────────────────────────────────────────────
+        # RL agents
         self.agent_l = DQNAgent("P1-red")
         self.agent_r = DQNAgent("P2-blue")
 
@@ -124,9 +100,7 @@ class App:
         # Whether agents should be in training mode
         self._rl_training = True
 
-    # ══════════════════════════════════════════════════════════════════════
     # Frame capture helper
-    # ══════════════════════════════════════════════════════════════════════
 
     def _capture_frame(self):
         """Render the game area to an off-screen surface and pre-process it."""
@@ -148,9 +122,7 @@ class App:
 
         return preprocess(self._game_surf)   # numpy (84,84) float32
 
-    # ══════════════════════════════════════════════════════════════════════
     # Sidebar
-    # ══════════════════════════════════════════════════════════════════════
 
     def _draw_sidebar(self):
 
@@ -167,7 +139,7 @@ class App:
         for sl in self.sliders.values():
             sl.draw(sb, self.f_sm, self.f_val)
 
-        # ── live stats ────────────────────────────────────────────────────
+        # live stats 
         if self.state in (TRAINING, EVAL, SUMMARY):
 
             y0 = self.btn_again.top - 148
@@ -217,7 +189,7 @@ class App:
                     (14, y0 + i * 18)
                 )
 
-        # ── buttons ───────────────────────────────────────────────────────
+        # buttons
         mx, my = pygame.mouse.get_pos()
 
         if self.state == SETUP:
@@ -267,9 +239,7 @@ class App:
 
         self.screen.blit(sb, (0, 0))
 
-    # ══════════════════════════════════════════════════════════════════════
     # Game area
-    # ══════════════════════════════════════════════════════════════════════
 
     def _draw_game(self):
 
@@ -330,9 +300,7 @@ class App:
             ox + GAME_W // 2 - rc.get_width() // 2, GAME_H - 22
         ))
 
-    # ══════════════════════════════════════════════════════════════════════
     # Summary screen
-    # ══════════════════════════════════════════════════════════════════════
 
     def _draw_summary(self, ox):
 
@@ -375,9 +343,7 @@ class App:
             ))
             y += font.get_height() + 8
 
-    # ══════════════════════════════════════════════════════════════════════
     # Simulation control
-    # ══════════════════════════════════════════════════════════════════════
 
     def _start(self, mode):
         """Begin a fresh simulation in TRAINING or EVAL mode."""
@@ -420,9 +386,7 @@ class App:
         self.agent_l.new_episode(frame)
         self.agent_r.new_episode(frame)
 
-    # ══════════════════════════════════════════════════════════════════════
     # Simulation step  (called once per frame when state == TRAINING/EVAL)
-    # ══════════════════════════════════════════════════════════════════════
 
     def _sim_step(self):
 
@@ -445,7 +409,7 @@ class App:
         pl = self.paddle_l
         pr = self.paddle_r
 
-        # ── Reward helpers ────────────────────────────────────────────────
+        # Reward helpers
 
         def tracking_reward(paddle, ball):
             """Small dense reward for keeping the paddle close to the ball."""
@@ -531,9 +495,7 @@ class App:
             else:
                 self._new_game()
 
-    # ══════════════════════════════════════════════════════════════════════
     # Action → paddle movement
-    # ══════════════════════════════════════════════════════════════════════
 
     @staticmethod
     def _apply_action(paddle, action):
@@ -543,9 +505,7 @@ class App:
         elif action == 1 and paddle.rect.bottom < GAME_H:
             paddle.rect.y += paddle.spd
 
-    # ══════════════════════════════════════════════════════════════════════
     # Main loop
-    # ══════════════════════════════════════════════════════════════════════
 
     def run(self):
 

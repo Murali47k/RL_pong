@@ -6,7 +6,6 @@ Each paddle gets its own DQNAgent that:
   • outputs Q-values for 2 actions: 0=up, 1=down  (stay removed)
   • trains from a replay buffer using the Bellman equation
 
-No GPU required — the network is small enough for CPU.
 """
 
 import random
@@ -14,7 +13,7 @@ import math
 import collections
 import numpy as np
 
-# ── optional torch import (graceful fallback) ──────────────────────────────
+# optional torch import 
 try:
     import torch
     import torch.nn as nn
@@ -24,13 +23,11 @@ except ImportError:
     TORCH_OK = False
 
 
-# ──────────────────────────────────────────────────────────────────────────
 # Constants
-# ──────────────────────────────────────────────────────────────────────────
 
 FRAME_H    = 84          # resized frame height fed to CNN
 FRAME_W    = 84          # resized frame width
-STACK_N    = 6           # frames stacked — more context for velocity estimation
+STACK_N    = 6           # frames stacked
 N_ACTIONS  = 2           # 0=up, 1=down  (stay removed to prevent idle policies)
 
 BATCH_SIZE     = 64
@@ -40,7 +37,7 @@ LR             = 1e-4    # Adam learning rate
 
 EPS_START  = 1.0
 EPS_END    = 0.05
-EPS_DECAY  = 100_000     # slow decay so agents explore long enough
+EPS_DECAY  = 50_000     # slow decay so agents explore long enough
 
 TARGET_UPDATE_FREQ = 1000  # steps between target-net syncs
 TRAIN_FREQ         = 4     # train every N steps
@@ -79,10 +76,7 @@ class QNet(nn.Module):
     def forward(self, x):
         return self.fc(self.conv(x))
 
-
-# ──────────────────────────────────────────────────────────────────────────
 # Replay Buffer
-# ──────────────────────────────────────────────────────────────────────────
 
 Transition = collections.namedtuple(
     "Transition", ("state", "action", "reward", "next_state", "done")
@@ -104,9 +98,7 @@ class ReplayBuffer:
         return len(self.buf)
 
 
-# ──────────────────────────────────────────────────────────────────────────
 # Frame pre-processing
-# ──────────────────────────────────────────────────────────────────────────
 
 def preprocess(surface):
     """
@@ -127,9 +119,7 @@ def preprocess(surface):
     return gray
 
 
-# ──────────────────────────────────────────────────────────────────────────
 # Frame Stack
-# ──────────────────────────────────────────────────────────────────────────
 
 class FrameStack:
     """Keeps the last STACK_N frames and returns them as a (STACK_N, H, W) array."""
@@ -148,16 +138,11 @@ class FrameStack:
         return np.stack(self.frames, axis=0)  # (STACK_N, H, W)
 
 
-# ──────────────────────────────────────────────────────────────────────────
 # DQN Agent
-# ──────────────────────────────────────────────────────────────────────────
 
 class DQNAgent:
     """
     One DQN agent controlling one paddle.
-
-    If PyTorch is unavailable the agent falls back to random actions so the
-    game still runs — you just won't get learning.
     """
 
     def __init__(self, name="agent"):
@@ -185,7 +170,7 @@ class DQNAgent:
         self._prev_state  = None
         self._prev_action = None
 
-    # ── helpers ───────────────────────────────────────────────────────────
+    # helpers
 
     def _eps(self):
         """Linearly decayed epsilon."""
@@ -197,7 +182,7 @@ class DQNAgent:
         """numpy (4,84,84) → torch (1,4,84,84) float32."""
         return torch.from_numpy(arr).unsqueeze(0)
 
-    # ── public API ────────────────────────────────────────────────────────
+    # public API
 
     def new_episode(self, frame):
         """Call at the start of each game round with the first frame."""
@@ -274,7 +259,7 @@ class DQNAgent:
     def avg_loss(self):
         return sum(self.losses) / len(self.losses) if self.losses else 0.0
 
-    # ── private ───────────────────────────────────────────────────────────
+    # private
 
     def _train_step(self):
         batch = self.buf.sample(BATCH_SIZE)
